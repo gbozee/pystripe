@@ -1,6 +1,6 @@
 from dispatch import Signal
 
-payment_verified = Signal(providing_args=["ref", "amount", "order"])
+payment_verified = Signal(providing_args=["charge_id", "amount", "order", "data"])
 
 event_signal = Signal(providing_args=["event", "data"])
 

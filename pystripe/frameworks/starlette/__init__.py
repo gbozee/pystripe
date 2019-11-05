@@ -8,7 +8,7 @@ from starlette.requests import Request
 from starlette.background import BackgroundTask
 from starlette.responses import JSONResponse, RedirectResponse
 
-# from pystripe.api import signals
+from pystripe.api import signals
 
 from starlette.config import Config
 from starlette.datastructures import URL, Secret
@@ -26,11 +26,18 @@ def verify_payment(
 ):
     amount = request.query_params.get("amount")
     order = request.path_params.get("order_id")
-    txrf = request.query_params.get("trxref")
-    response = stripe_instance.verify_payment(txrf, amount=int(amount))
+    charge_id = request.query_params.get("charge_id")
+    currency = request.query_params.get("currency") or "usd"
+    response = stripe_instance.verify_payment(
+        charge_id, amount=int(amount), currency=currency
+    )
     if response[0]:
         signals.payment_verified.send(
-            sender=StripeAPI, ref=txrf, amount=int(amount) / 100, order=order
+            sender=StripeAPI,
+            ref=charge_id,
+            amount=int(amount) / 100,
+            order=order,
+            data=response[2],
         )
     return response_callback(response[0], order=order)
 

@@ -117,3 +117,14 @@ class StripeAPI(object):
         )
         return charge
 
+    def processor_info(self, amount, redirect_url=None):
+        return {
+            "amount": amount * 100,
+            "js_script": get_js_script(),
+            "key": self.public_key,
+            "redirect_url": redirect_url,
+        }
+
+
+def get_js_script():
+    return "https://js.stripe.com/v3/"

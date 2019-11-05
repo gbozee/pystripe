@@ -33,7 +33,4 @@ def payment_page(request: Request):
     )
 
 
-@app.route("/success", methods=["GET"])
-def success_page(request):
-    return JSONResponse({"status": request.query_params})
 
