@@ -1,3 +1,25 @@
+def payment_intent_data(raw_data, full_auth=False):
+    data = raw_data["object"]
+    if full_auth:
+        return data
+    status = data.get("status")
+    amount = data.get("amount")
+    _id = data.get("id")
+    payment_method = data.get("payment_method")
+    customer = data.get("customer")
+    currency = data["currency"]
+    charges = data["charges"]["data"]
+    return {
+        "id": _id,
+        "amount": amount / 100,
+        "status": status,
+        "payment_method": payment_method,
+        "customer": customer,
+        "currency": currency,
+        "charges": [charge_data({"object": x}) for x in charges],
+    }
+
+
 def charge_data(raw_data, full_auth=False):
     data = raw_data["object"]
     if full_auth:
@@ -15,6 +37,8 @@ def charge_data(raw_data, full_auth=False):
     failure_message = data.get("failure_message")
     _id = data["id"]
     outcome = data.get("outcome")
+    payment_intent = data.get("payment_intent")
+    payment_method = data.get("payment_method")
     failure = {}
     if failure_code:
         failure = {"code": failure_code, "message": failure_message}
@@ -29,4 +53,6 @@ def charge_data(raw_data, full_auth=False):
         "failure": failure,
         "outcome": outcome,
         "amount_refunded": amount_refunded,
+        "payment_intent": payment_intent,
+        "payment_method": payment_method,
     }

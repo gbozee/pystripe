@@ -1,36 +1,31 @@
-from pystripe.utils import StripeAPI
+import pytest
+from starlette.responses import JSONResponse
+from starlette.testclient import TestClient
+
 from pystripe.frameworks.starlette import build_app
-from starlette.requests import Request
-from starlette.templating import Jinja2Templates
-from starlette.staticfiles import StaticFiles
-
-app = build_app(StripeAPI)
-templates = Jinja2Templates(directory="templates")
-app.mount("/static", StaticFiles(directory="static"), name="static")
+from pystripe.utils import StripeAPI
 
 
-@app.route("/", methods=["GET"])
-def payment_page(request: Request):
-    stripe_instance = app.state.stripe
-    # session = stripe_instance.create_session(
-    #     line_items=[
-    #         {
-    #             "name": "T-shirt",
-    #             "description": "Comfortable cotton t-shirt",
-    #             "images": ["https://example.com/t-shirt.png"],
-    #             "amount": 5,
-    #             "currency": "usd",
-    #             "quantity": 1,
-    #         }
-    #     ],
-    #     email="james@example.com",
-    #     success_url="/success",
-    #     cancel_url="/",
-    # )
-    return templates.TemplateResponse(
-        "index.html",
-        {"request": request, "stripe_instance": stripe_instance},
-    )
+@pytest.fixture
+def client():
+    def _response_callback(status, order=None):
+        return JSONResponse({"status": status, "order": order})
 
+    async def _get_payment_info(order_id):
+        return 20, "eur"
 
+    def _client(
+        get_payment_info=_get_payment_info,
+        response_callback=_response_callback,
+        path="/paystack",
+    ):
+        app = build_app(
+            StripeAPI,
+            path=path,
+            webhook_secret="whsec_icv68RjYQK2MQ1Kq3O0TDxrvJJhqbEHt",
+            response_callback=response_callback,
+            get_payment_info=get_payment_info,
+        )
+        return TestClient(app)
 
+    return _client

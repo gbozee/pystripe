@@ -9,7 +9,7 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setup(
     name="pystripe",
-    version="1.0.1",
+    version="1.0.2",
     packages=find_packages(),
     include_package_data=True,
     license="MIT License",  # example license
@@ -22,7 +22,7 @@ setup(
         "Paperboy",
         "python-dateutil",
         # "requests-async",
-        "stripe==2.37.2",
+        "stripe==2.39.0",
         "requests-async @ https://github.com/encode/requests-async/archive/master.zip",
     ],
     extras_require={

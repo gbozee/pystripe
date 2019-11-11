@@ -1,6 +1,6 @@
 from .exceptions import StripeException
 from . import signals
-from .utils import charge_data
+from .utils import charge_data, payment_intent_data
 
 
 class Webhook(object):
@@ -28,6 +28,10 @@ class Webhook(object):
                 "charge.refunded",
             ]:
                 relevant_info["data"] = charge_data(event["data"], full_auth=full_auth)
+            if event["type"] == "payment_intent.succeeded":
+                relevant_info["data"] = payment_intent_data(
+                    event["data"], full_auth=full_auth
+                )
             if event["type"] == "charge.refund.updated":  # refund update
                 pass
             if event["type"] == "charge.expired":
@@ -36,6 +40,7 @@ class Webhook(object):
                 "charge.succeeded": signals.successful_payment_signal,
                 "charge.failed": signals.failed_payment_signal,
                 "charge.refunded": signals.successful_payment_signal,
+                "payment_intent.succeeded": signals.payment_intent_succeeded_signal,
             }
             try:
                 signal_func = options[event["type"]]

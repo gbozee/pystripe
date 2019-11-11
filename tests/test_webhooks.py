@@ -10,6 +10,12 @@ def signal_called(sender, **kwargs):
     generic_function(**kwargs)
 
 
+@receiver(signals.payment_intent_succeeded_signal)
+def payment_intent_succeeded_called(sender, **kwargs):
+    kwargs.pop("signal", None)
+    generic_function(**kwargs)
+
+
 def generic_function(**params):
     print(params)
 
@@ -26,6 +32,214 @@ def mock_generic_func(mocker):
     mock_digest = mocker.patch("stripe.WebhookSignature.verify_header")
     mock_digest.return_value = True
     return mock_successful_call
+
+
+def test_successful_payment_intent_webhook_signal(
+    mock_generic_func, stripe_api: utils.StripeAPI
+):
+    body = """{
+  "id": "evt_1FZp49Hv0Y0PURSqIxXfx6W1",
+  "object": "event",
+  "api_version": "2019-03-14",
+  "created": 1572572201,
+  "type": "payment_intent.succeeded",
+  "data": {
+    "object": {
+      "id": "pi_1FcPwWHv0Y0PURSqv7IfcycV",
+      "object": "payment_intent",
+      "amount": 2000,
+      "amount_capturable": 0,
+      "amount_received": 2000,
+      "application": null,
+      "application_fee_amount": null,
+      "canceled_at": null,
+      "cancellation_reason": null,
+      "capture_method": "automatic",
+      "charges": {
+        "object": "list",
+        "data": [
+          {
+            "id": "ch_1FcPwWHv0Y0PURSq8Zf6nGiG",
+            "object": "charge",
+            "amount": 2000,
+            "amount_refunded": 0,
+            "application": null,
+            "application_fee": null,
+            "application_fee_amount": null,
+            "balance_transaction": "txn_1FcPwWHv0Y0PURSqUcYf2msV",
+            "billing_details": {
+              "address": {
+                "city": null,
+                "country": null,
+                "line1": null,
+                "line2": null,
+                "postal_code": null,
+                "state": null
+              },
+              "email": null,
+              "name": null,
+              "phone": null
+            },
+            "captured": true,
+            "created": 1573190612,
+            "currency": "usd",
+            "customer": null,
+            "description": null,
+            "destination": null,
+            "dispute": null,
+            "disputed": false,
+            "failure_code": null,
+            "failure_message": null,
+            "fraud_details": {},
+            "invoice": null,
+            "livemode": false,
+            "metadata": {},
+            "on_behalf_of": null,
+            "order": null,
+            "outcome": {
+              "network_status": "approved_by_network",
+              "reason": null,
+              "risk_level": "normal",
+              "risk_score": 9,
+              "seller_message": "Payment complete.",
+              "type": "authorized"
+            },
+            "paid": true,
+            "payment_intent": "pi_1FcPwWHv0Y0PURSqv7IfcycV",
+            "payment_method": "pm_1FcPwVHv0Y0PURSqhzOPKhrD",
+            "payment_method_details": {
+              "card": {
+                "brand": "visa",
+                "checks": {
+                  "address_line1_check": null,
+                  "address_postal_code_check": null,
+                  "cvc_check": "pass"
+                },
+                "country": "US",
+                "exp_month": 12,
+                "exp_year": 2020,
+                "fingerprint": "yIwZJF6Qz10rsS7J",
+                "funding": "credit",
+                "installments": null,
+                "last4": "4242",
+                "network": "visa",
+                "three_d_secure": null,
+                "wallet": null
+              },
+              "type": "card"
+            },
+            "receipt_email": null,
+            "receipt_number": null,
+            "receipt_url": "https://pay.stripe.com/receipts/acct_1EJOOLHv0Y0PURSq/ch_1FcPwWHv0Y0PURSq8Zf6nGiG/rcpt_G8hLwFJ7Hf7NO9IqjVu44wEHtUM1OCY",
+            "refunded": false,
+            "refunds": {
+              "object": "list",
+              "data": [],
+              "has_more": false,
+              "total_count": 0,
+              "url": "/v1/charges/ch_1FcPwWHv0Y0PURSq8Zf6nGiG/refunds"
+            },
+            "review": null,
+            "shipping": null,
+            "source": null,
+            "source_transfer": null,
+            "statement_descriptor": null,
+            "statement_descriptor_suffix": null,
+            "status": "succeeded",
+            "transfer_data": null,
+            "transfer_group": null
+          }
+        ],
+        "has_more": false,
+        "total_count": 1,
+        "url": "/v1/charges?payment_intent=pi_1FcPwWHv0Y0PURSqv7IfcycV"
+      },
+      "client_secret": "pi_1FcPwWHv0Y0PURSqv7IfcycV_secret_AQueMGf3ftOnZIPJ2MjNDIx59",
+      "confirmation_method": "automatic",
+      "created": 1573190612,
+      "currency": "usd",
+      "customer": null,
+      "description": null,
+      "invoice": null,
+      "last_payment_error": null,
+      "livemode": false,
+      "metadata": {},
+      "next_action": null,
+      "on_behalf_of": null,
+      "payment_method": "pm_1FcPwVHv0Y0PURSqhzOPKhrD",
+      "payment_method_options": {
+        "card": {
+          "installments": null,
+          "request_three_d_secure": "automatic"
+        }
+      },
+      "payment_method_types": ["card"],
+      "receipt_email": null,
+      "review": null,
+      "setup_future_usage": null,
+      "shipping": null,
+      "source": null,
+      "statement_descriptor": null,
+      "statement_descriptor_suffix": null,
+      "status": "succeeded",
+      "transfer_data": null,
+      "transfer_group": null
+    }
+  }
+}
+
+"""
+    stripe_api.webhook_api.verify("unique_signature", body)
+    mock_generic_func.assert_called_once_with(
+        event="payment_intent.succeeded",
+        data={
+            "id": "pi_1FcPwWHv0Y0PURSqv7IfcycV",
+            "amount": 20.0,
+            "status": "succeeded",
+            "payment_method": "pm_1FcPwVHv0Y0PURSqhzOPKhrD",
+            "customer": None,
+            "currency": "usd",
+            "charges": [
+                {
+                    "id": "ch_1FcPwWHv0Y0PURSq8Zf6nGiG",
+                    "amount": 20.0,
+                    "currency": "usd",
+                    "customer": None,
+                    "payment_details": {
+                        "brand": "visa",
+                        "checks": {
+                            "address_line1_check": None,
+                            "address_postal_code_check": None,
+                            "cvc_check": "pass",
+                        },
+                        "country": "US",
+                        "exp_month": 12,
+                        "exp_year": 2020,
+                        "fingerprint": "yIwZJF6Qz10rsS7J",
+                        "funding": "credit",
+                        "installments": None,
+                        "last4": "4242",
+                        "network": "visa",
+                        "three_d_secure": None,
+                        "wallet": None,
+                    },
+                    "status": "succeeded",
+                    "amount_refunded": 0,
+                    "failure": {},
+                    "payment_intent": "pi_1FcPwWHv0Y0PURSqv7IfcycV",
+                    "payment_method": "pm_1FcPwVHv0Y0PURSqhzOPKhrD",
+                    "outcome": {
+                        "network_status": "approved_by_network",
+                        "reason": None,
+                        "risk_level": "normal",
+                        "risk_score": 9,
+                        "seller_message": "Payment complete.",
+                        "type": "authorized",
+                    },
+                }
+            ],
+        },
+    )
 
 
 def test_successful_charge_webhook_signal(
@@ -90,6 +304,8 @@ def test_successful_charge_webhook_signal(
             "status": "succeeded",
             "amount_refunded": 0,
             "failure": {},
+            "payment_intent": None,
+            "payment_method": "card_1FZp48Hv0Y0PURSqsmipr0Rv",
             "outcome": {
                 "network_status": "approved_by_network",
                 "reason": None,
@@ -144,6 +360,8 @@ null, "state": null}, "email": null, "name": null, "phone": null}, "captured": f
                 "seller_message": "The bank did not return any further details with this decline.",
                 "type": "issuer_declined",
             },
+            "payment_intent": None,
+            "payment_method": "card_1FZpYhHv0Y0PURSqJWu9ppxe",
         },
     )
 
@@ -193,5 +411,7 @@ def test_refund_payment(mock_generic_func, stripe_api):
                 "seller_message": "Payment complete.",
                 "type": "authorized",
             },
+            "payment_intent": None,
+            "payment_method": "card_1FZpUgHv0Y0PURSqykuRPITN",
         },
     )

@@ -10,7 +10,6 @@
 
 <body>
     Hello Page
-    {{session.id}}
     <button id="payment-button">Make payment</button>
     <script src="https://js.stripe.com/v3/"></script>
 
@@ -26,13 +25,14 @@
             <!-- Used to display form errors. -->
             <div id="card-errors" role="alert"></div>
         </div>
-
+        <div id="iframe-container"></div>
         <button>Submit Payment</button>
     </form>
     <script>
         // Create a Stripe client.
         var stripe = Stripe('{{stripe_instance.public_key}}');
-
+        let redirect_url = "{{redirect_url|safe}}"
+        let return_url = "{{return_url|safe}}"
         // Create an instance of Elements.
         var elements = stripe.elements();
 
@@ -72,33 +72,124 @@
 
         // Handle form submission.
         var form = document.getElementById('payment-form');
-        form.addEventListener('submit', function (event) {
-            event.preventDefault();
-
-            stripe.createToken(card).then(function (result) {
+        function serverGeneratesIntent(client_secret, card, redirect_url) {
+            stripe.confirmCardPayment(client_secret, { payment_method: { card: card }, return_url }).then(function (result) {
                 if (result.error) {
                     // Inform the user if there was an error.
                     var errorElement = document.getElementById('card-errors');
                     errorElement.textContent = result.error.message;
                 } else {
                     // Send the token to your server.
-                    stripeTokenHandler(result.token);
+                    if (result.paymentIntent.status === 'succeeded') {
+                        stripeTokenHandler(result.payment_method)
+                    }
+                    var action = result.paymentIntent.next_action;
+                    if (action && action.type === 'redirect_to_url') {
+                        loadIframe(action)
+                        // window.location = action.redirect_to_url.url;
+                    }
                 }
             });
-        });
+        }
+        function clientCallsServerToGenerateIntent(cardElement, redirect_url) {
+            stripe.createPaymentMethod('card', cardElement, {
+                // billing_details: { name: cardholderName.value }
+            }).then(function (result) {
+                if (result.error) {
+                    // Show error in payment form
+                    // Inform the user if there was an error.
+                    var errorElement = document.getElementById('card-errors');
+                    errorElement.textContent = result.error.message;
+                } else {
+                    // Otherwise send paymentMethod.id to your server (see Step 3)
+                    fetch(redirect_url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ payment_method_id: result.paymentMethod.id })
+                    }).then(function (result) {
+                        // Handle server response (see Step 3)
+                        result.json().then(function (json) {
+                            handleServerResponse(json);
+                        })
+                    });
+                }
+            });
+        }
+        form.addEventListener('submit', function (event) {
+            event.preventDefault();
+            // serverGeneratesIntent("{{secret_key}}", card, return_url)
+            clientCallsServerToGenerateIntent(card, redirect_url)
 
+        });
+        function loadIframe(action) {
+            let yourContainer = document.getElementById("iframe-container")
+            var iframe = document.createElement('iframe');
+            iframe.src = action.redirect_to_url.url;
+            iframe.width = 600;
+            iframe.height = 400;
+            yourContainer.appendChild(iframe);
+        }
+        function on3DSComplete() {
+            // Hide the 3DS UI
+            yourContainer.remove();
+
+            // Check the PaymentIntent
+            stripe.retrievePaymentIntent('{{secret_key}}')
+                .then(function (result) {
+                    if (result.error) {
+                        // PaymentIntent client secret was invalid
+                    } else {
+                        if (result.paymentIntent.status === 'succeeded') {
+                            stripeTokenHandler(result.paymentIntent);
+                            // Show your customer that the payment has succeeded
+                        } else if (result.paymentIntent.status === 'requires_payment_method') {
+                            // Authentication failed, prompt the customer to enter another payment method
+                        }
+                    }
+                });
+        }
+        window.addEventListener('message', function (ev) {
+            if (ev.data === '3DS-authentication-complete') {
+                on3DSComplete();
+            }
+        }, false);
+        function handleServerResponse(response) {
+            if (response.error) {
+                var errorElement = document.getElementById('card-errors');
+                errorElement.textContent = response.error;
+                // Show error from server on payment form
+            } else if (response.requires_action) {
+                // Use Stripe.js to handle required card action
+                stripe.handleCardAction(
+                    response.payment_intent_client_secret
+                ).then(function (result) {
+                    if (result.error) {
+                        // Show error in payment form
+                        var errorElement = document.getElementById('card-errors');
+                        errorElement.textContent = result.error.message;
+                    } else {
+                        // The card action has been handled
+                        // The PaymentIntent can be confirmed again on the server
+                        fetch(redirect_url, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ payment_intent_id: result.paymentIntent.id })
+                        }).then(function (confirmResult) {
+                            return confirmResult.json();
+                        }).then(handleServerResponse);
+                    }
+                });
+            } else {
+                // Show success message
+                console.log("successful payment")
+            }
+        }
         // Submit the form with the token ID.
         function stripeTokenHandler(token) {
             // Insert the token ID into the form so it gets submitted to the server
-            var form = document.getElementById('payment-form');
-            var hiddenInput = document.createElement('input');
-            hiddenInput.setAttribute('type', 'hidden');
-            hiddenInput.setAttribute('name', 'stripeToken');
-            hiddenInput.setAttribute('value', token.id);
-            form.appendChild(hiddenInput);
-
-            // Submit the form
-            form.submit();
+            fetch(`${redirect_url}&intent_id=${token.id}`).then(data => data.json()).then(data => {
+                console.log(data)
+            })
         }</script>
 </body>
 
