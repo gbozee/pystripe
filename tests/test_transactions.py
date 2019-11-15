@@ -95,4 +95,3 @@ def test_create_or_process_intent(mocker, stripe_api: utils.StripeAPI):
     assert not result[0]
     assert result[1] == {"error": "Invalid PaymentIntent status"}
 
-

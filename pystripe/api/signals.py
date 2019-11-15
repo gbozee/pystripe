@@ -8,4 +8,4 @@ successful_payment_signal = Signal(providing_args=["data"])
 
 payment_intent_succeeded_signal = Signal(providing_args=["data"])
 
-failed_payment_signal = Signal(providing_args=["transfer_code", "data"])
+failed_payment_signal = Signal(providing_args=["data"])

@@ -93,6 +93,7 @@ def build_app(
     webhook_secret=None,
     instance_only=False,
     get_payment_info: typing.Coroutine = None,
+    _app: Starlette = None,
 ):
     stripe_instance = StripeAPI(
         public_key=str(STRIPE_PUBLIC_KEY),
@@ -102,10 +103,16 @@ def build_app(
     )
     if instance_only:
         return stripe_instance
-    app = Starlette()
-    app.add_middleware(
-        CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"]
-    )
+    if _app:
+        app = _app
+    else:
+        app = Starlette()
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=["*"],
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
 
     async def new_webhook(request):
         return await webhook_view(
