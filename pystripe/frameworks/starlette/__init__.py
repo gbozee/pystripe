@@ -42,14 +42,12 @@ def verify_payment(
     return response_callback(response[0], order=order)
 
 
-async def webhook_view(request: Request, stripe_instance=None, full_auth=True):
+async def webhook_view(request: Request, background_action=None, **kwargs):
     signature = request.headers.get("stripe-signature")
     body = await request.body()
     return JSONResponse(
         {"status": "Success"},
-        background=BackgroundTask(
-            stripe_instance.webhook_api.verify, signature, body, full_auth=full_auth
-        ),
+        background=BackgroundTask(background_action, signature, body, **kwargs),
     )
 
 
@@ -89,9 +87,9 @@ def build_app(
     StripeAPI,
     path="",
     response_callback=None,
-    full_auth=True,
     webhook_secret=None,
     instance_only=False,
+    post_webhook_processing=None,
     get_payment_info: typing.Coroutine = None,
     _app: Starlette = None,
 ):
@@ -114,9 +112,14 @@ def build_app(
             allow_headers=["*"],
         )
 
+    def background_action(signature, body, **kwargs):
+        return stripe_instance.webhook_api.verify(signature, body, full_auth=True)
+
+    verify_action = post_webhook_processing or background_action
+
     async def new_webhook(request):
         return await webhook_view(
-            request, stripe_instance=stripe_instance, full_auth=full_auth
+            request, background_action=verify_action, stripe_instance=stripe_instance
         )
 
     # new_webhook = lambda request: expression asyncio.coroutine(

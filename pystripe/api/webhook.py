@@ -47,3 +47,4 @@ class Webhook(object):
             except KeyError:
                 signal_func = signals.event_signal
             signal_func.send(sender=self, **relevant_info)
+            return event["type"], relevant_info
