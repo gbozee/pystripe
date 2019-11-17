@@ -8,8 +8,8 @@ def test_verify_payment_endpoint(client, mocker):
     pass
 
 
-async def _get_payment_info(order):
-    return 50, "usd"
+async def _get_payment_info(order, **kwargs):
+    return {"amount": 50, "currency": "usd"}
 
 
 Intent = namedtuple(

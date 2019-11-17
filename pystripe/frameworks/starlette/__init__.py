@@ -60,14 +60,13 @@ async def make_payment(
     intent = None
     amount = None
     currency = None
-    if data.get("payment_method_id"):
-        amount, currency = await get_payment_info(order_id)
+    transaction = await get_payment_info(order_id, **data)
 
     result = stripe_instance.create_or_process_intent(
         payment_intent_id=data.get("payment_intent_id"),
         payment_method=data.get("payment_method_id"),
-        amount=amount,
-        currency=currency,
+        amount=transaction["amount"],
+        currency=transaction["currency"],
         order=order_id,
     )
     if not result[0]:
