@@ -39,7 +39,7 @@ class StripeAPI(object):
         amount=None,
         currency=None,
         order=None,
-        send_result=Fals,
+        send_result=False,
     ):
         intent = None
         try:
