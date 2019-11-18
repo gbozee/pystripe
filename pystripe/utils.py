@@ -39,6 +39,7 @@ class StripeAPI(object):
         amount=None,
         currency=None,
         order=None,
+        send_result=Fals,
     ):
         intent = None
         try:
@@ -77,6 +78,8 @@ class StripeAPI(object):
                 order=order,
                 data=intent,
             )
+            if send_result:
+                return True, intent
             return True, {}
         else:
             # Invalid status

@@ -9,9 +9,11 @@ class Webhook(object):
         self.signing_secret = signing_secret
 
     def verify(self, unique_code, request_body, full_auth=False, **kwargs):
+        # import stripe
         event = None
         try:
             event = self.stripe.Webhook.construct_event(
+            # event = stripe.Webhook.construct_event(
                 request_body, unique_code, self.signing_secret
             )
         except ValueError as e:

@@ -75,6 +75,7 @@ async def make_payment(
             return JSONResponse({"error": result[1]})
         # Invalid status from intent
         return JSONResponse({"error": "Invalid PaymentIntent status"}, status_code=500)
+        
     if result[1].get("requires_action"):
         # Tell the client to handle the action
         return JSONResponse(result[1])
