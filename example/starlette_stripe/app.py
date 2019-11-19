@@ -30,9 +30,10 @@ def on_successful_payment(sender, event=None, data=None, **kwargs):
     # attempt charging the card again.
     stripe_instance: stripe_utils.StripeAPI = app.state.stripe
     # add customer to card
-    rr = stripe_instance.save_card_for_customer(
-        payment_method, customer=customer, email="gbozee@gmail.com", name="Sholaosho"
-    )
+    # rr = stripe_instance.save_card_for_customer(
+    #     payment_method, customer=customer, email="gbozee@gmail.com", name="Sholaosho"
+    # )
+    import ipdb; ipdb.set_trace()
     # result = stripe_instance.charge_card(amount=40, customer=customer, currency="usd")
     pass
 
@@ -47,8 +48,13 @@ def response_callback(status, order=None):
     return JSONResponse({"status": status, "order": order})
 
 
-async def get_payment_info(order_id):
-    return 20, "eur"
+async def get_payment_info(order_id, **kwargs):
+    return {
+        "amount": 20,
+        "currency": "eur",
+        "email": "gbozee@gmail.com",
+        "name": "Sholaosho",
+    }
 
 
 app = build_app(

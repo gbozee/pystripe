@@ -46,4 +46,9 @@ class Customer:
         )
         return [x.id for x in result["data"]]
 
-
+    def add_payment_method(self, payment_method, customer):
+        user_payment_methods = self.get_payment_methods(customer)
+        if user_payment_methods:
+            if not payment_method in user_payment_methods:
+                self.stripe.PaymentMethod.attach(payment_method, customer=customer)
+        return payment_method

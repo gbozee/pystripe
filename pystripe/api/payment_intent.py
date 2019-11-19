@@ -37,9 +37,10 @@ class PaymentIntent:
             customer_id=customer_id, email=email, name=name
         ) 
         # attach payment method to customer
-        payment_method = self.stripe.PaymentMethod.attach(
-            _payment_method, customer=customer
-        )
+        payment_method = self.customer_api.add_payment_method(_payment_method, customer)
+        # payment_method = self.stripe.PaymentMethod.attach(
+        #     _payment_method, customer=customer
+        # )
         return full_customer
 
     def create_intent(

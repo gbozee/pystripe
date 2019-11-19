@@ -40,18 +40,32 @@ class StripeAPI(object):
         currency=None,
         order=None,
         send_result=False,
+        customer=None,
+        email=None,
+        name=None,
     ):
         intent = None
         try:
             if payment_method:
-                # Create the PaymentIntent
-                intent = self.stripe.PaymentIntent.create(
+                kwargs = dict(
                     payment_method=payment_method,
                     amount=amount * 100,
                     currency=currency,
                     confirmation_method="manual",
                     confirm=True,
                 )
+                if customer or all([email, name]):
+                    # save payment method
+                    customer_id, _ = self.customer_api.create_or_update_customer(
+                        customer_id=customer, email=email, name=name, update=True
+                    )
+                    if customer_id:
+                        self.save_card_for_customer(
+                            payment_method, customer=customer_id
+                        )
+                        kwargs.update(customer=customer_id)
+                # Create the PaymentIntent
+                intent = self.stripe.PaymentIntent.create(**kwargs)
             elif payment_intent_id:
                 intent = self.stripe.PaymentIntent.confirm(payment_intent_id)
         except self.stripe.error.CardError as e:
